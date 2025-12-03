@@ -1059,4 +1059,3 @@ class MainWindow(QMainWindow):
             self.hide()
         else:
             event.accept()
-
