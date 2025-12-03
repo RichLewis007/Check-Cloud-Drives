@@ -1,0 +1,20 @@
+{
+  "drives": [
+    {
+      "remote_name": "example-remote:",
+      "display_name": "Example Drive",
+      "drive_type": "googledrive",
+      "enabled": true
+    }
+  ],
+  "window_geometry": {
+    "x": 100,
+    "y": 100,
+    "width": 500,
+    "height": 600
+  },
+  "stay_on_top": false,
+  "auto_refresh_interval": 300
+}
+
+

@@ -2,7 +2,7 @@
 local/
 
 # Configuration file with private cloud drive info
-.check_cloud_drives_config.json
+CheckCloudDrivesConfig.toml
 
 # ===========================================
 # Python

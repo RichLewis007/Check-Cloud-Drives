@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# file: setup_env.sh
+# author: Rich Lewis - @RichLewis007
+# description: Recreate the virtual environment and set up pre-commit hooks
+# (One use case: if you delete the .venv directory to save space (as the PySide6 dir is HUGE), you can run this script to recreate it.)
+
+# Usage:
+# set it up for the first time: chmod u+x ./scripts/setup_env.sh
+# then run it: ./scripts/setup_env.sh
+
+# What this does:
+# - Removes .venv - Deletes the old virtual environment
+# - Recreates with uv sync --extra dev - Creates a new virtual environment and installs:
+#   - All project dependencies (PySide6, etc.)
+#   - All dev dependencies (pytest, ruff, mypy, pre-commit, etc.)
+# - Installs pre-commit hooks - Sets up git hooks so pre-commit runs automatically on commits
+# After running this, your virtual environment will be recreated and pre-commit will be configured. The hooks will run automatically when you commit.
+#
+# If you prefer to do this manually, you can follow these steps:
+# 1. Remove the .venv directory: rm -rf .venv
+# 2. Recreate it with all dependencies (including dev extras): uv sync --extra dev
+# 3. Install pre-commit hooks: uv run --extra dev pre-commit install
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+echo "Removing existing virtual environment..."
+rm -rf .venv
+
+echo "Creating new virtual environment with dependencies..."
+uv sync --extra dev
+
+echo "Installing pre-commit hooks..."
+uv run --extra dev pre-commit install
+
+echo ""
+echo "Setup complete! Virtual environment recreated and pre-commit hooks installed."
+echo ""
+echo "You can now:"
+echo "  - Run the app: uv run ghost-files-finder"
+echo "  - Run tests: uv run --extra dev pytest"
+echo "  - Run checks: uv run --extra dev nox"

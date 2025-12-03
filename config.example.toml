@@ -1,0 +1,28 @@
+# Example configuration file for Check Cloud Drives
+# Copy this file to CheckCloudDrivesConfig.toml and customize it
+# Note: This file is excluded from git, so your private drive information won't be shared
+
+# List of configured cloud drives
+drives = [
+    # Example drive configuration:
+    # {
+    #     remote_name = "gdrive"
+    #     display_name = "My Google Drive"
+    #     drive_type = "googledrive"
+    #     enabled = true
+    # }
+]
+
+# Window geometry (saved automatically)
+window_geometry = {}
+
+# Window behavior settings
+stay_on_top = false
+run_at_startup = false
+
+# Auto-refresh interval in seconds (0 to disable)
+auto_refresh_interval = 300
+
+# Drive order (saved automatically when cards are reordered)
+drive_order = []
+
