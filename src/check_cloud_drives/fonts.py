@@ -79,7 +79,7 @@ def load_font_from_zip(zip_path: Path, font_name_in_zip: str) -> bool:
             # Verify font was loaded by checking font families
             font_families = QFontDatabase.applicationFontFamilies(font_id)
             if font_families:
-                print(f"Successfully loaded font: {font_families[0]}")
+                # Successfully loaded - don't print success message
                 return True
             else:
                 print(f"Font loaded but no families found: {font_name_in_zip}")
@@ -118,7 +118,7 @@ def load_all_fonts_from_zip(zip_path: Path, font_pattern: str = "Propo") -> int:
                 if load_font_from_zip(zip_path, font_file):
                     loaded_count += 1
 
-        print(f"Loaded {loaded_count} font(s) from {zip_path}")
+        # Don't print success message - only show errors
         return loaded_count
 
     except Exception as e:

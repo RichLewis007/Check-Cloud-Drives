@@ -127,6 +127,7 @@ class MainWindow(QMainWindow):
         self.workers: list[RcloneWorker] = []
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh_all_drives)
+        self.standard_button_height = None  # Will be set in _setup_ui
 
         self._setup_ui()
         self._setup_tray()
@@ -141,9 +142,15 @@ class MainWindow(QMainWindow):
     def _setup_ui(self):
         """Set up the main window UI."""
         self.setWindowTitle("Check Cloud Drives")
-        # Set optimal width for drive cards (380px provides comfortable padding)
-        self.setMinimumSize(380, 300)
-        self.resize(380, 600)
+        # Calculate optimal width for drive cards:
+        # - Card max width: 400px
+        # - Layout margins: 12px on each side = 24px total
+        # - Scrollbar width: ~17px (when scrolling is needed)
+        # - Extra padding: ~10px for safety
+        # Total: 400 + 24 + 17 + 10 = 451px, round to 450px
+        optimal_width = 450
+        self.setMinimumSize(optimal_width, 300)
+        self.resize(optimal_width, 600)
 
         # Central widget
         central = QWidget()
@@ -276,18 +283,34 @@ class MainWindow(QMainWindow):
 
         controls.addStretch()
 
-        # Hide button (blue)
-        hide_btn = QPushButton("Hide")
-        hide_btn.setStyleSheet("""
+        # Create a reference button to get standard height (matching dialog buttons)
+        # Use same styling as dialog buttons: padding 6px 12px, font-size 12px, font-weight bold
+        ref_button = QPushButton("Cancel")
+        ref_button.setStyleSheet("""
             QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
                 font-family: "AtkynsonMono Nerd Font Propo", monospace;
                 font-size: 12px;
                 font-weight: bold;
+                border-radius: 4px;
+                padding: 6px 12px;
+            }
+        """)
+        self.standard_button_height = ref_button.sizeHint().height()
+        ref_button.deleteLater()
+        
+        # Hide button (blue) - same font and height as dialog buttons
+        hide_btn = QPushButton("Hide")
+        hide_btn.setFixedHeight(self.standard_button_height)
+        hide_btn.setStyleSheet("""
+            QPushButton {
+                font-family: "AtkynsonMono Nerd Font Propo", monospace;
+                font-size: 12px;
+                font-weight: bold;
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
             }
             QPushButton:hover {
                 background-color: #2980b9;
@@ -299,18 +322,19 @@ class MainWindow(QMainWindow):
         hide_btn.clicked.connect(self.hide)
         controls.addWidget(hide_btn, alignment=Qt.AlignVCenter)
 
-        # Exit button (red)
+        # Exit button (red) - same font and height as dialog buttons
         exit_btn = QPushButton("Exit")
+        exit_btn.setFixedHeight(self.standard_button_height)
         exit_btn.setStyleSheet("""
             QPushButton {
-                background-color: #e74c3c;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
                 font-family: "AtkynsonMono Nerd Font Propo", monospace;
                 font-size: 12px;
                 font-weight: bold;
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
             }
             QPushButton:hover {
                 background-color: #c0392b;
@@ -465,7 +489,8 @@ class MainWindow(QMainWindow):
         """Handle first run setup."""
         available_remotes = self._get_available_remotes()
         if available_remotes:
-            dialog = SetupDialog(available_remotes, [], self)
+            drive_order = []  # Empty for first run
+            dialog = SetupDialog(available_remotes, [], drive_order, self)
             if dialog.exec() == QDialog.Accepted:
                 for drive_config in dialog.selected_drives:
                     self._add_drive_card(drive_config)
@@ -511,11 +536,49 @@ class MainWindow(QMainWindow):
         """Add a new drive."""
         available_remotes = self._get_available_remotes()
         existing_drives = self.config_manager.get_drives()
-        dialog = SetupDialog(available_remotes, existing_drives, self)
+        drive_order = self.config_manager.get_drive_order()
+        dialog = SetupDialog(available_remotes, existing_drives, drive_order, self)
         if dialog.exec() == QDialog.Accepted:
+            # Get list of selected remote names
+            selected_remote_names = {d.remote_name for d in dialog.selected_drives}
+            existing_remote_names = set(self.drive_cards.keys())
+            
+            # Remove drives that are not in the selected list (unchecked)
+            for remote_name in list(self.drive_cards.keys()):
+                if remote_name not in selected_remote_names:
+                    card = self.drive_cards[remote_name]
+                    # Remove from layout
+                    self.cards_layout.removeWidget(card)
+                    card.deleteLater()
+                    # Remove from dict
+                    del self.drive_cards[remote_name]
+            
+            # Create a dict of selected drives for lookup
+            selected_drives_dict = {d.remote_name: d for d in dialog.selected_drives}
+            
+            # Separate existing drives from new drives
+            existing_drives = []
+            new_drives = []
+            
             for drive_config in dialog.selected_drives:
+                if drive_config.remote_name in existing_remote_names:
+                    existing_drives.append(drive_config)
+                else:
+                    new_drives.append(drive_config)
+            
+            # Update existing cards (they stay in their current positions)
+            for drive_config in existing_drives:
+                if drive_config.remote_name in self.drive_cards:
+                    # Update card config if needed
+                    self.drive_cards[drive_config.remote_name].drive_config = drive_config
+            
+            # Add new drives at the bottom (before the stretch)
+            for drive_config in new_drives:
                 self._add_drive_card(drive_config)
-            self._save_drives()
+            
+            # Save the updated drive list (only selected drives) and order
+            self.config_manager.set_drives(dialog.selected_drives)
+            self._save_drive_order()
             self.refresh_all_drives()
 
     def _add_drive_card(self, drive_config: DriveConfig):
@@ -525,12 +588,50 @@ class MainWindow(QMainWindow):
 
         card = DriveCard(drive_config, self.cards_container)
         card.setAcceptDrops(True)
+        # Connect signal to save display name changes to config
+        card.display_name_saved.connect(lambda name, remote=drive_config.remote_name: self._save_card_display_name(remote, name))
+        # Connect signal to remove card
+        card.card_removed.connect(lambda remote=drive_config.remote_name: self._remove_card(remote))
         self.drive_cards[drive_config.remote_name] = card
 
         # Insert before stretch
         count = self.cards_layout.count()
         self.cards_layout.insertWidget(count - 1, card)
 
+    def _save_card_display_name(self, remote_name: str, display_name: str):
+        """Save the display name for a specific drive card."""
+        # Update the drive config in the config manager
+        drives = self.config_manager.get_drives()
+        for drive in drives:
+            if drive.remote_name == remote_name:
+                drive.display_name = display_name
+                break
+        self.config_manager.set_drives(drives)
+        self.config_manager.save_config()
+    
+    def _remove_card(self, remote_name: str):
+        """Remove a card from the UI and config."""
+        if remote_name not in self.drive_cards:
+            return
+        
+        card = self.drive_cards[remote_name]
+        
+        # Remove card from layout
+        self.cards_layout.removeWidget(card)
+        card.deleteLater()
+        
+        # Remove from dict
+        del self.drive_cards[remote_name]
+        
+        # Update config - remove the drive from the list
+        drives = self.config_manager.get_drives()
+        drives = [d for d in drives if d.remote_name != remote_name]
+        self.config_manager.set_drives(drives)
+        self.config_manager.save_config()
+        
+        # Update drive order
+        self._save_drive_order()
+    
     def _save_drives(self):
         """Save current drives to config."""
         drives = []
@@ -715,18 +816,59 @@ class MainWindow(QMainWindow):
                 background-color: #ffffff;
                 color: #2c3e50;
             }
-            QSpinBox::up-button, QSpinBox::down-button {
+            QSpinBox::up-button {
                 background-color: #ecf0f1;
                 border: 1px solid #d0d0d0;
+                border-top-right-radius: 4px;
                 width: 20px;
+                subcontrol-origin: border;
+                subcontrol-position: top right;
             }
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+            QSpinBox::up-button:hover {
                 background-color: #bdc3c7;
             }
-            QSpinBox::up-arrow, QSpinBox::down-arrow {
-                color: #2c3e50;
-                width: 8px;
-                height: 8px;
+            QSpinBox::up-button:pressed {
+                background-color: #95a5a6;
+            }
+            QSpinBox::down-button {
+                background-color: #ecf0f1;
+                border: 1px solid #d0d0d0;
+                border-bottom-right-radius: 4px;
+                width: 20px;
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+            }
+            QSpinBox::down-button:hover {
+                background-color: #bdc3c7;
+            }
+            QSpinBox::down-button:pressed {
+                background-color: #95a5a6;
+            }
+            QSpinBox::up-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 6px solid #2c3e50;
+                width: 0px;
+                height: 0px;
+                margin-left: 2px;
+                margin-right: 2px;
+            }
+            QSpinBox::up-arrow:hover {
+                border-bottom-color: #1a252f;
+            }
+            QSpinBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #2c3e50;
+                width: 0px;
+                height: 0px;
+                margin-left: 2px;
+                margin-right: 2px;
+            }
+            QSpinBox::down-arrow:hover {
+                border-top-color: #1a252f;
             }
         """)
         interval_layout.addWidget(self.refresh_interval_spin)
@@ -799,14 +941,19 @@ class MainWindow(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
+        # Use the exact same height as Hide/Exit buttons
+        # Use self.standard_button_height which was calculated in _setup_ui
+        button_height = self.standard_button_height if self.standard_button_height else 30  # Fallback if not set
+        
         cancel_btn = QPushButton("Cancel")
+        cancel_btn.setFixedHeight(button_height)
         cancel_btn.setStyleSheet("""
             QPushButton {
                 background-color: #95a5a6;
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 8px 24px;
+                border-radius: 4px;
+                padding: 6px 12px;
                 font-family: "AtkynsonMono Nerd Font Propo", monospace;
                 font-size: 12px;
                 font-weight: bold;
@@ -822,13 +969,14 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(cancel_btn)
 
         save_btn = QPushButton("Save")
+        save_btn.setFixedHeight(button_height)
         save_btn.setStyleSheet("""
             QPushButton {
                 background-color: #27ae60;
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 8px 24px;
+                border-radius: 4px;
+                padding: 6px 12px;
                 font-family: "AtkynsonMono Nerd Font Propo", monospace;
                 font-size: 12px;
                 font-weight: bold;
@@ -997,13 +1145,13 @@ class MainWindow(QMainWindow):
             self.setGeometry(
                 geometry.get("x", 100),
                 geometry.get("y", 100),
-                geometry.get("width", 380),
+                geometry.get("width", 450),
                 geometry.get("height", 600),
             )
         else:
             # Default: position on right side of screen
             screen = QApplication.primaryScreen().geometry()
-            window_width = 380
+            window_width = 450
             window_height = 600
             x = screen.right() - window_width
             y = (screen.height() - window_height) // 2  # Center vertically

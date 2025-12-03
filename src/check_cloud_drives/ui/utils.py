@@ -14,7 +14,7 @@ def get_assets_dir() -> Path:
     return project_root / "assets"
 
 
-def load_icon(drive_type: str, size: int = 56) -> QPixmap:
+def load_icon(drive_type: str, size: int = 56) -> tuple[QPixmap, float]:
     """Load icon for drive type, with fallback to placeholder."""
     # Try to load SVG icon from assets directory
     assets_dir = get_assets_dir()
@@ -43,35 +43,38 @@ def load_icon(drive_type: str, size: int = 56) -> QPixmap:
             if renderer.isValid():
                 # Get viewBox - this defines the coordinate system of the SVG
                 view_box = renderer.viewBox()
+                view_width = view_box.width()
+                view_height = view_box.height()
+                aspect_ratio = view_width / view_height if view_height > 0 else 1.0
 
-                # Create pixmap with some extra space to ensure nothing is cropped
-                # Add 15% padding to account for viewBox bounds
-                padded_size = int(size * 1.15)
+                # Calculate dimensions maintaining aspect ratio
+                # Use 'size' as the maximum dimension to prevent cards from becoming too wide
+                if aspect_ratio >= 1.0:
+                    # Wider than tall - limit width to size, calculate height
+                    icon_width = size
+                    icon_height = int(size / aspect_ratio)
+                else:
+                    # Taller than wide - use size as height, calculate width
+                    icon_height = size
+                    icon_width = int(size * aspect_ratio)
 
-                image = QImage(padded_size, padded_size, QImage.Format_ARGB32)
+                # Create pixmap with the calculated dimensions
+                image = QImage(icon_width, icon_height, QImage.Format_ARGB32)
                 image.fill(0x00000000)  # Transparent background
 
                 painter = QPainter(image)
                 painter.setRenderHint(QPainter.Antialiasing)
                 painter.setRenderHint(QPainter.SmoothPixmapTransform)
 
-                # Simply render the SVG to the full image - QSvgRenderer handles viewBox automatically
-                # The renderer will scale the viewBox to fit the target rectangle
-                # Using the full padded size ensures the entire viewBox is visible
-                renderer.render(painter, QRect(0, 0, padded_size, padded_size))
+                # Render the SVG to the image maintaining aspect ratio
+                renderer.render(painter, QRect(0, 0, icon_width, icon_height))
                 painter.end()
 
-                # Convert to pixmap and scale down to desired size, maintaining aspect ratio
-                pixmap = QPixmap.fromImage(image)
-                final_pixmap = pixmap.scaled(
-                    size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation
-                )
+                # Convert to pixmap
+                final_pixmap = QPixmap.fromImage(image)
 
                 if not final_pixmap.isNull() and final_pixmap.width() > 0:
-                    print(
-                        f"Successfully loaded SVG icon: {icon_path} (viewBox: {view_box}, size: {size})"
-                    )
-                    return final_pixmap
+                    return final_pixmap, aspect_ratio
                 else:
                     print(f"QSvgRenderer produced null/empty pixmap for: {icon_path}")
         except Exception as e:
@@ -83,7 +86,7 @@ def load_icon(drive_type: str, size: int = 56) -> QPixmap:
     else:
         print(f"SVG icon file not found: {icon_path} (drive_type: {drive_type})")
 
-    # Fallback: create placeholder icon
+    # Fallback: create placeholder icon (square)
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
@@ -110,4 +113,4 @@ def load_icon(drive_type: str, size: int = 56) -> QPixmap:
     painter.drawText(pixmap.rect(), Qt.AlignCenter, letter)
     painter.end()
 
-    return pixmap
+    return pixmap, 1.0  # Square aspect ratio for placeholder
