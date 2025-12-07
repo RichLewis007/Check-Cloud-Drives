@@ -519,9 +519,6 @@ class MainWindow(QMainWindow):
             dialog.finished.connect(self._on_dialog_finished)
             self.overlay_sync_timer.start()
             self.dialog_raise_timer.start()
-            # Show and raise dialog before exec
-            dialog.show()
-            self._bring_dialog_to_front()
             result = dialog.exec()
             self.overlay_sync_timer.stop()
             self.dialog_raise_timer.stop()
@@ -580,9 +577,6 @@ class MainWindow(QMainWindow):
         dialog.finished.connect(self._on_dialog_finished)
         self.overlay_sync_timer.start()
         self.dialog_raise_timer.start()
-        # Show and raise dialog before exec
-        dialog.show()
-        self._bring_dialog_to_front()
         result = dialog.exec()
         self.overlay_sync_timer.stop()
         self.dialog_raise_timer.stop()
