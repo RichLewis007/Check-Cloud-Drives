@@ -7,31 +7,37 @@ This directory contains unit tests for the check-cloud-drives application.
 ## Running Tests
 
 ### Run all tests:
+
 ```bash
 pytest
 ```
 
 ### Run with verbose output:
+
 ```bash
 pytest -v
 ```
 
 ### Run specific test file:
+
 ```bash
 pytest tests/test_config.py
 ```
 
 ### Run specific test:
+
 ```bash
 pytest tests/test_config.py::TestConfigManager::test_get_drives_empty
 ```
 
 ### Run with coverage:
+
 ```bash
 pytest --cov=check_cloud_drives --cov-report=html
 ```
 
 ### Run only fast tests (exclude slow tests):
+
 ```bash
 pytest -m "not slow"
 ```
@@ -46,6 +52,7 @@ pytest -m "not slow"
 ## Fixtures
 
 Shared test fixtures are defined in `conftest.py`:
+
 - `temp_config_file` - Temporary config file for testing
 - `sample_drive_config` - Sample `DriveConfig` instance
 - `sample_drive_status` - Sample `DriveStatus` instance
@@ -55,12 +62,14 @@ Shared test fixtures are defined in `conftest.py`:
 ## Requirements
 
 Tests require:
+
 - `pytest>=8.0.0`
 - `pytest-qt>=4.2.0` (for Qt widget tests)
 - `pytest-mock>=3.12.0` (for mocking)
+- `pytest-cov>=5.0.0` (for coverage reports)
 
 Install with:
+
 ```bash
 uv sync
 ```
-

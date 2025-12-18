@@ -1,6 +1,9 @@
 # local-only files
 local/
 
+# Test coverage html report folder
+htmlcov/
+
 # GitHub Pages build output
 _site/
 
