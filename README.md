@@ -191,6 +191,42 @@ This project uses [Ruff](https://github.com/astral-sh/ruff) for linting and form
 - `all` - Run format check + lint check (default)
 - `fix` - Format + auto-fix linting issues
 
+### Testing
+
+This project uses [pytest](https://pytest.org/) for unit testing with [pytest-qt](https://pytest-qt.readthedocs.io/) for Qt widget testing.
+
+**Run tests:**
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/test_config.py
+
+# Run specific test
+uv run pytest tests/test_config.py::TestConfigManager::test_get_drives_empty
+
+# Run with coverage report
+uv run pytest --cov=check_cloud_drives --cov-report=html
+
+# Run only fast tests (exclude slow tests)
+uv run pytest -m "not slow"
+```
+
+**Test coverage:**
+
+The test suite includes 64 tests covering:
+- **ConfigManager** - Configuration loading, saving, and persistence
+- **Data Models** - DriveConfig and DriveStatus validation and serialization
+- **Rclone Integration** - Command execution and output parsing
+- **UI Components** - DriveCard edit mode, status updates, and display behavior
+
+See `tests/README.md` for more detailed testing documentation.
+
 ### Generating requirements.txt
 
 If you need a `requirements.txt` file for compatibility with other tools, CI/CD systems, or if you prefer using `pip` directly, you can generate it from `pyproject.toml`:
