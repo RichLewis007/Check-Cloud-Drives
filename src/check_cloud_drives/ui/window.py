@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Config file in project root directory
         project_root = Path(__file__).parent.parent.parent.parent
-        config_path = project_root / "CheckCloudDrivesConfig.toml"
+        config_path = project_root / "check-cloud-drives.toml"
         self.config_manager = ConfigManager(config_path)
         self.drive_cards: dict[str, DriveCard] = {}
         self.workers: list[RcloneWorker] = []

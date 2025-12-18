@@ -1,5 +1,5 @@
 # Example configuration file for Check Cloud Drives
-# Copy this file to CheckCloudDrivesConfig.toml and customize it
+# Copy this file to check-cloud-drives.toml and customize it
 # Note: This file is excluded from git, so your private drive information won't be shared
 
 # List of configured cloud drives

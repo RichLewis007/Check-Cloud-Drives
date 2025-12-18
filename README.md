@@ -1,6 +1,6 @@
 # Check Cloud Drives
 
-A handy PySide6 GUI application for monitoring the status of one or many cloud drives using the free open-source utility rclone for secure drive access. This app lives in your macOS menu bar and provides a sleek, modern interface to check the status of all your configured cloud drives.
+A handy Python PySide6 GUI application for monitoring the status of one or many cloud drives using the free open-source utility rclone for secure drive access. This app lives in your macOS menu bar and provides a sleek, modern interface to check the status of all your configured cloud drives.
 
 **Author:** Rich Lewis - @RichLewis007
 
@@ -97,7 +97,7 @@ python -m check_cloud_drives.main
 
 ## Configuration
 
-The application stores all configuration in `CheckCloudDrivesConfig.toml` in the project root directory. This file includes:
+The application stores all configuration in `check-cloud-drives.toml` in the project root directory. This file includes:
 
 - List of monitored drives
 - Window position and size
@@ -220,6 +220,7 @@ uv run pytest -m "not slow"
 **Test coverage:**
 
 The test suite includes 64 tests covering:
+
 - **ConfigManager** - Configuration loading, saving, and persistence
 - **Data Models** - DriveConfig and DriveStatus validation and serialization
 - **Rclone Integration** - Command execution and output parsing

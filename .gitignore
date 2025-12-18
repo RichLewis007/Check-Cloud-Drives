@@ -5,7 +5,7 @@ local/
 _site/
 
 # Configuration file with private cloud drive info
-CheckCloudDrivesConfig.toml
+check-cloud-drives.toml
 
 # ===========================================
 # Python
